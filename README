@@ -1,0 +1,47 @@
+Croitoru Constantin Bogdan
+Grupa 334CA
+Tema1 APD
+
+Pentru realizarea temei mi-am creat o strucutura in care retin datele:
+Elementele structurii sunt:
+a)int id -idul threadului
+b)vector<string> file_names -vector cu numele fisierelor
+c)int nr_files -numarul de fisiere din vector
+d)int M -numarul de threaduri Mapper
+e)int R -numarul de threaduri Reducer
+f)vector<unordered_map<char,unordered_set<pair<string, int>,MyHash>>> *words_vector -vector de mapuri de perechi cuvant id_fisier
+g)int *nr_files_read -numarul de fisiere citite
+h)pthread_mutex_t *mutex -mutexul pentru sincronizarea threadurilor
+i)pthread_barrier_t *barrier -bariera pentru sincronizarea threadurilor
+j)int *nr_letter -numarul de litere procesate, adica a e 0, b e 1,...(le iau in ordine)
+
+In main apelez functia creata de mine "get_args" care imi preia argumentele din linia de comanda, similar ca in laborator.
+Apoi deschid fisierul si citesc numarul de fisiere si numele lor, si le retin intr-un vector de stringuri.
+Imi creez datele de care am nevoie, un vector de mapuri, fiecare thread Mapper avand un map, iar structura mapului este 
+<char,unordered_set<pair<string, int>,MyHash>>.
+Apoi imi initializez numarul de fisiere citite si numarul de litere cu 0, declar mutexul si bariera si le initializez.
+In continuare, intr-un singur for creez toate threadurile. Imi creez cate o structura pentru  fiecare thread, si in functie de 
+idul threadului ii dau functie de Mapper sau Reducer.
+Apoi mai am un for in care le fac join la toate threadurile, si la final distrug mutexul si bariera.
+
+
+In functia de Mapper "void *thread_func_Maper(void *arg)" logica este urmatoarea:
+-folosesc mutexul pentru a lua valoarea indexului din vectorul de fisiere care trebuie citit si incrementez valoarea indexului.
+-retin o referinta la un map din vectorul de mapuri(fiecare thread Mapper are un map).
+-apoi cat timp mai sunt fisiere necitite, citeste fisierul cuvant cu cuvant pana ajunge la final, iar fiecare cuvant este verificat 
+prin functia "verif_word" si este pus in map, avand ca cheie prima litera a cuvantului, si ca valoare perechea dintre cuvant si id-ul 
+fisierului.
+-din bucla while iese cand s-au terminat fisierele de citit.
+-la final asteapta la bariera si apoi isi termina treaba.
+Numarul de fisiere pe care il citeste un thread este dinamic, acesta citeste cat timp mai sunt fisiere de citit.
+
+
+In functia de Reducer "void *thread_func_Reducer(void *arg)" logica este urmatoarea:
+-intitial asteapta la bariera pana cand toate threadurile Mapper au terminat de citit fisierele.
+-folosesc mutexul pentru a lua nr_letter(care reprezinta ce litera trebuie procesata 'a'+nr_letter) si incrementez valoarea.
+-apoi intra in bucla while care dureaza cat timp mai sunt litere de procesat. In interiorul acesteia, extrage intr-un vector de tipul 
+<string,list<int>> toate cuvintele care incep cu litera curenta din vectorul de mapuri, dar in vectorul acesta poate aparea 
+{Bogdan,{1}}, {Bogdan,{2}}. Pentru a le uni, am un vector in care le unesc si obtin {Bogdan,{1,2}}. 
+Acest vector este sortat si afisat in fisierul de iesire. Numerele fisierului il creez din litera curenta + ".txt".
+Tot in while se ia o noua litera de procesat si se incrementeaza nr_letter.
+Numarul de litere pe care il proceseaza un thread Reducer este dinamic, acesta ia cate o litera pana cand se ajunge la z.
